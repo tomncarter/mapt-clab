@@ -4,15 +4,15 @@ topology:
   nodes:
     mapt:
       kind: vr-sros
-      image: vrnetlab/vr-sros:23.3.R1
+      image: vrnetlab/vr-sros:23.10.R1
       type: vsr-i
-      license: license-sros22.txt
+      license: vsr-license.txt
       startup-config: mapt/config.txt
     r1:
       kind: vr-sros
-      image: vrnetlab/vr-sros:23.3.R1
+      image: vrnetlab/vr-sros:23.10.R1
       type: vsr-i
-      license: license-sros22.txt
+      license: vsr-license.txt
       startup-config: r1/config.txt
     dhcp:
       kind: linux
@@ -36,19 +36,35 @@ topology:
         - ip route add 0.0.0.0/1 via 192.168.1.2
         - ip route add 128.0.0.0/1 via 192.168.1.2
         - ip -6 route add ::/0 via 2001:db8:ffff:1::1 metric 128
-    cpe:
+    ost1:
       kind: linux
-      image: openwrt/rootfs:23.05-RC3-MAP
-    pc:
+      image: ostinato/ostinato:v1.3.0-1
+      ports:
+        - 5901:5900/tcp
+        - 7879:7878/tcp
+    openwrt:
+      kind: linux
+      image: vrnetlab/vr-openwrt:23.05.3
+      ports:
+        - 8080:80
+        - 8443:443
+      binds:
+        - openwrt/network:/etc/config/network  
+      env:
+        USERNAME: root #(default)
+        PASSWORD: mypassword #(default is VR-netlab9)
+        CONNECTION_MODE: tc #(default)
+    multitool:
       kind: linux
       image: praqma/network-multitool
       exec:
         - ip addr add 192.168.1.99/24 dev eth1
         - ip route add 0.0.0.0/0 via 192.168.1.1 metric 1
-
   links:
     - endpoints: ["mapt:eth1", "r1:eth1"]
     - endpoints: ["tester:eth1", "r1:eth2"]
-    - endpoints: ["cpe:eth1", "r1:eth3"]
-    - endpoints: ["cpe:eth2", "pc:eth1"]
-    - endpoints: ["dhcp:eth1", "r1:eth4"]  
+    - endpoints: ["dhcp:eth1", "r1:eth4"]
+    - endpoints: ["r1:eth5", "ost1:eth1"]
+    - endpoints: ["r1:eth6", "ost1:eth2"]
+    - endpoints: ["openwrt:eth2", "r1:eth3"]
+    - endpoints: ["openwrt:eth2", "multitool:eth1"]
